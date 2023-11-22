@@ -1,17 +1,22 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
+from django.utils import timezone
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
 
 from borrowing.models import Borrowing
+from borrowing.permissions import IsAdminOrIfAuthenticatedReadOrCreateOnly
 from borrowing.serializers import (
     BorrowingCreateSerializer,
     BorrowingDetailSerializer,
-    BorrowingListSerializer,
+    BorrowingListSerializer, BorrowingReturnSerializer,
 )
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.select_related("book", "user")
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrIfAuthenticatedReadOrCreateOnly]
 
     def get_queryset(self):
         queryset = self.queryset
@@ -36,7 +41,31 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             return BorrowingCreateSerializer
         if self.action == "retrieve":
             return BorrowingDetailSerializer
+        if self.action == "return_book":
+            return BorrowingReturnSerializer
         return BorrowingListSerializer
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(methods=["POST"], detail=True, url_path="return")
+    def return_book(self, request, pk=None):
+        borrowing = get_object_or_404(Borrowing, pk=pk)
+
+        if borrowing.actual_return_date:
+            return Response(
+                {"detail": "The book has already been returned"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            borrowing.actual_return_date = timezone.now().date()
+            book = borrowing.book
+            book.inventory += 1
+
+            book.save()
+            borrowing.save()
+
+        return Response(
+            {"message": "Borrowing returned successfully."}, status=status.HTTP_200_OK
+        )

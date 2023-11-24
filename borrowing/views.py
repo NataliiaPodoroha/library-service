@@ -1,4 +1,6 @@
+import stripe
 from django.db import transaction
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -12,6 +14,8 @@ from borrowing.serializers import (
     BorrowingDetailSerializer,
     BorrowingListSerializer, BorrowingReturnSerializer,
 )
+from payment.models import Payment
+from payment.views import create_checkout_session
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -45,9 +49,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             return BorrowingReturnSerializer
         return BorrowingListSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
     @action(methods=["POST"], detail=True, url_path="return")
     def return_book(self, request, pk=None):
         borrowing = get_object_or_404(Borrowing, pk=pk)
@@ -69,3 +70,37 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return Response(
             {"message": "Borrowing returned successfully."}, status=status.HTTP_200_OK
         )
+
+    def perform_create(self, serializer):
+        with transaction.atomic():
+            borrowing = serializer.save(user=self.request.user)
+
+            book = borrowing.book
+            book.inventory -= 1
+            book.save()
+
+            self.create_payment(self.request, borrowing, borrowing.price, "PAYMENT")
+
+    @staticmethod
+    def create_payment(request, borrowing: Borrowing, money_amount: int, payment_type: str):
+        payment = Payment.objects.create(
+            status="PENDING",
+            type=payment_type,
+            borrowing=borrowing,
+            money_to_pay=money_amount,
+        )
+
+        base_url = request.build_absolute_uri(
+            reverse("payment:payment-detail", kwargs={"pk": payment.id})
+        )
+
+        money_amount = int(money_amount * 100)
+
+        session_data = create_checkout_session(base_url, borrowing.id, money_amount)
+
+        if session_data.get("error", None):
+            raise stripe.error.APIError
+
+        payment.session_url = session_data["session_url"]
+        payment.session_id = session_data["session_id"]
+        payment.save()

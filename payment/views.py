@@ -45,6 +45,10 @@ class PaymentViewSet(
         serializer = PaymentSerializer(payment)
         return Response(serializer.data)
 
+    @action(methods=["GET"], detail=True, url_path="cancelled")
+    def cancel(self, request, pk=None):
+        return Response({"detail": "You can make your pay in next 24 hours"})
+
 
 def create_checkout_session(domain_url: str, borrowing_id: int, money_amount: int):
     stripe.api_key = settings.STRIPE_SECRET_KEY

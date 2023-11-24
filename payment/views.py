@@ -1,7 +1,9 @@
 import stripe
 from django.conf import settings
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from book.models import Book
 from borrowing.models import Borrowing
@@ -30,6 +32,22 @@ class PaymentViewSet(
         if self.action == "retrieve":
             return PaymentDetailSerializer
         return PaymentSerializer
+
+    @action(methods=["GET"], detail=True, url_path="success")
+    def success(self, request, pk=None):
+        session_id = self.get_object().session_id
+        payment = Payment.objects.get(session_id=session_id)
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session["payment_status"] == "paid":
+            payment.status = "PAID"
+            payment.save()
+        serializer = PaymentSerializer(payment)
+        return Response(serializer.data)
+
+    @action(methods=["GET"], detail=True, url_path="cancelled")
+    def cancel(self, request, pk=None):
+        return Response({"detail": "You can make your pay in next 24 hours"})
 
 
 def create_checkout_session(domain_url: str, borrowing_id: int, money_amount: int):

@@ -5,6 +5,9 @@ from django.db.models import Q, F
 from book.models import Book
 
 
+FINE_MULTIPLIER = 2
+
+
 class Borrowing(models.Model):
     borrow_date = models.DateField(auto_now_add=True)
     expected_return_date = models.DateField()
@@ -32,3 +35,11 @@ class Borrowing(models.Model):
                 self.book.daily_fee *
                 ((self.expected_return_date - self.borrow_date).days + 1)
         )
+
+    @property
+    def overdue(self):
+        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
+            return (
+                    self.actual_return_date - self.expected_return_date
+            ).days * self.book.daily_fee * FINE_MULTIPLIER
+        return 0

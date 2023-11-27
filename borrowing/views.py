@@ -1,5 +1,6 @@
 import stripe
 from django.db import transaction
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -59,6 +60,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if (payment_obj := borrowing.payments.filter(status="PENDING")).exists():
+            return HttpResponseRedirect(payment_obj.first().session_url)
+
         with transaction.atomic():
             borrowing.actual_return_date = timezone.now().date()
             book = borrowing.book
@@ -66,6 +70,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
             book.save()
             borrowing.save()
+        if borrowing.actual_return_date > borrowing.expected_return_date:
+            self.create_payment(self.request, borrowing, borrowing.overdue, "FINE")
 
         return Response(
             {"message": "Borrowing returned successfully."}, status=status.HTTP_200_OK

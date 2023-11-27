@@ -12,7 +12,6 @@ from payment.serializers import PaymentDetailSerializer, PaymentSerializer
 
 
 class PaymentViewSet(
-    mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,

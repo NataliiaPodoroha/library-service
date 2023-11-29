@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "book",
     "borrowing",
     "payment",
@@ -67,7 +68,7 @@ ROOT_URLCONF = "library_service.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates']
+        "DIRS": [BASE_DIR / "templates"]
         ,
         "APP_DIRS": True,
         "OPTIONS": {
@@ -89,8 +90,11 @@ WSGI_APPLICATION = "library_service.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "HOST": os.environ["POSTGRES_HOST"],
+        "NAME": os.environ["POSTGRES_DB"],
+        "USER": os.environ["POSTGRES_USER"],
+        "PASSWORD": os.environ["POSTGRES_PASSWORD"],
     }
 }
 
@@ -100,16 +104,20 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "MinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "CommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "NumericPasswordValidator",
     },
 ]
 
@@ -149,7 +157,21 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Library Service API",
+    "DESCRIPTION": "Online library management system for book borrowings",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "defaultModelRendering": "model",
+        "defaultModelsExpandDepth": 2,
+        "defaultModelExpandDepth": 2,
+    },
 }
 
 

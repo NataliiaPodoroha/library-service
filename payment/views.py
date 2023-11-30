@@ -49,7 +49,9 @@ class PaymentViewSet(
         return Response({"detail": "You can make your pay in next 24 hours"})
 
 
-def create_checkout_session(domain_url: str, borrowing_id: int, money_amount: int):
+def create_checkout_session(
+        domain_url: str, borrowing_id: int, money_amount: int
+):
     stripe.api_key = settings.STRIPE_SECRET_KEY
     borrowing = Borrowing.objects.get(pk=borrowing_id)
     book = Book.objects.get(pk=borrowing.book.id)
@@ -71,6 +73,9 @@ def create_checkout_session(domain_url: str, borrowing_id: int, money_amount: in
                 "quantity": 1,
             }],
         )
-        return {"session_id": checkout_session["id"], "session_url": checkout_session["url"]}
+        return {
+            "session_id": checkout_session["id"],
+            "session_url": checkout_session["url"]
+        }
     except Exception as e:
         return {"error": str(e)}

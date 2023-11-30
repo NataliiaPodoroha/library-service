@@ -60,7 +60,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if (payment_obj := borrowing.payments.filter(status="PENDING")).exists():
+        if (
+                payment_obj := borrowing.payments.filter(status="PENDING")
+        ).exists():
             return HttpResponseRedirect(payment_obj.first().session_url)
 
         with transaction.atomic():
@@ -71,10 +73,13 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             book.save()
             borrowing.save()
         if borrowing.actual_return_date > borrowing.expected_return_date:
-            self.create_payment(self.request, borrowing, borrowing.overdue, "FINE")
+            self.create_payment(
+                self.request, borrowing, borrowing.overdue, "FINE"
+            )
 
         return Response(
-            {"message": "Borrowing returned successfully."}, status=status.HTTP_200_OK
+            {"message": "Borrowing returned successfully."},
+            status=status.HTTP_200_OK
         )
 
     def perform_create(self, serializer):
@@ -85,10 +90,14 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             book.inventory -= 1
             book.save()
 
-            self.create_payment(self.request, borrowing, borrowing.price, "PAYMENT")
+            self.create_payment(
+                self.request, borrowing, borrowing.price, "PAYMENT"
+            )
 
     @staticmethod
-    def create_payment(request, borrowing: Borrowing, money_amount: int, payment_type: str):
+    def create_payment(
+            request, borrowing: Borrowing, money_amount: int, payment_type: str
+    ):
         payment = Payment.objects.create(
             status="PENDING",
             type=payment_type,
@@ -102,7 +111,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         money_amount = int(money_amount * 100)
 
-        session_data = create_checkout_session(base_url, borrowing.id, money_amount)
+        session_data = create_checkout_session(
+            base_url, borrowing.id, money_amount
+        )
 
         if session_data.get("error", None):
             raise stripe.error.APIError

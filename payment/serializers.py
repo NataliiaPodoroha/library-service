@@ -11,7 +11,9 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 class PaymentDetailSerializer(serializers.ModelSerializer):
     borrowing = serializers.PrimaryKeyRelatedField(
-        queryset=Payment.objects.select_related("borrowing__book", "borrowing__user")
+        queryset=Payment.objects.select_related(
+            "borrowing__book", "borrowing__user"
+        )
     )
 
     class Meta:

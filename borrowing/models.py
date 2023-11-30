@@ -31,15 +31,19 @@ class Borrowing(models.Model):
 
     @property
     def price(self):
-        return (
-                self.book.daily_fee *
-                ((self.expected_return_date - self.borrow_date).days + 1)
+        return self.book.daily_fee * (
+            (self.expected_return_date - self.borrow_date).days + 1
         )
 
     @property
     def overdue(self):
-        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
+        if (
+            self.actual_return_date
+            and self.actual_return_date > self.expected_return_date
+        ):
             return (
-                    self.actual_return_date - self.expected_return_date
-            ).days * self.book.daily_fee * FINE_MULTIPLIER
+                (self.actual_return_date - self.expected_return_date).days
+                * self.book.daily_fee
+                * FINE_MULTIPLIER
+            )
         return 0

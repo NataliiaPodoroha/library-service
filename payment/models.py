@@ -12,8 +12,12 @@ class Payment(models.Model):
         ("PAYMENT", "Payment"),
         ("FINE", "Fine")
     )
-    status = models.CharField(max_length=7, choices=STATUSES, default="PENDING")
-    type = models.CharField(max_length=7, choices=TYPES, default="PAYMENT")
+    status = models.CharField(
+        max_length=7, choices=STATUSES, default="PENDING"
+    )
+    type = models.CharField(
+        max_length=7, choices=TYPES, default="PAYMENT"
+    )
     borrowing = models.ForeignKey(
         to=Borrowing,
         related_name="payments",
